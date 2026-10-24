@@ -1,4 +1,6 @@
 """Version 1 sanitization API."""
+import asyncio
+import logging
 import time
 
 from fastapi import APIRouter, HTTPException
@@ -11,12 +13,17 @@ from app.api.v1.models import (
 )
 from app.engine.renderer import UnsafeURLError, render
 from app.engine.unicode_cleaner import clean_unicode
-from app.security.guardrail_model import threat_score
+from app.security.guardrail_model import (
+    GuardrailModelError,
+    predict_prompt_injection,
+    threat_score,
+)
 from app.security.heuristics import scan
 from app.security.prompt_enclosure import enclose
 from app.telemetry.logger import log_audit
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 """
 /sanitize endpoint: Accepts a URL and optional timeout, renders the page, sanitizes the
@@ -60,7 +67,25 @@ async def sanitize(request: SanitizeRequest):
     )
     heuristic_findings = scan(inspection_text)
     unicode_count = sum(len(item.intercepted_content) for item in unicode_findings)
-    score = threat_score(rendered.findings, heuristic_findings, unicode_count)
+    try:
+        model_prediction = await asyncio.to_thread(predict_prompt_injection, inspection_text)
+    except GuardrailModelError as exc:
+        logger.exception("Guardrail model inference failed")
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    positive_model_probability = None
+    if (
+        model_prediction is not None
+        and model_prediction.injection_probability >= settings.guardrail_model_flag_threshold
+    ):
+        positive_model_probability = model_prediction.injection_probability
+
+    score = threat_score(
+        rendered.findings,
+        heuristic_findings,
+        unicode_count,
+        positive_model_probability,
+    )
 
     public_findings = list(rendered.findings)
     public_findings.extend({
@@ -73,6 +98,14 @@ async def sanitize(request: SanitizeRequest):
         "reason": item["reason"],
         "intercepted_content": item["intercepted_content"],
     } for item in heuristic_findings)
+    if positive_model_probability is not None:
+        public_findings.append({
+            "type": "prompt_injection_model",
+            "reason": "Pretrained classifier detected prompt injection (confidence {:.1%})".format(
+                positive_model_probability
+            ),
+            "intercepted_content": model_prediction.intercepted_content,
+        })
 
     actions = []
     if rendered.findings:
@@ -81,6 +114,8 @@ async def sanitize(request: SanitizeRequest):
         actions.append("REMOVED_INVISIBLE_UNICODE_CHARS")
     if heuristic_findings:
         actions.append("FLAGGED_PROMPT_INJECTION_KEYWORDS")
+    if positive_model_probability is not None:
+        actions.append("FLAGGED_ML_PROMPT_INJECTION")
 
     threshold = min(settings.threat_threshold, 0.2) if request.strict_mode else settings.threat_threshold
     elapsed_ms = round((time.perf_counter() - started) * 1000)
