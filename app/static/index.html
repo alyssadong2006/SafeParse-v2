@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Safely render and sanitize untrusted web content before sending it to an AI system.">
+  <title>SafeParse — Web content sanitizer</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="page-glow" aria-hidden="true"></div>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="SafeParse home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 2.5 20 6v5.7c0 4.8-3.2 8.3-8 9.8-4.8-1.5-8-5-8-9.8V6l8-3.5Z"/><path d="m8.7 12 2.1 2.1 4.7-5"/></svg>
+      </span>
+      <span>SafeParse</span>
+    </a>
+    <nav aria-label="Utility navigation">
+      <a href="/docs">API docs <span aria-hidden="true">↗</span></a>
+      <span class="status-pill"><i aria-hidden="true"></i> Local service</span>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="eyebrow"><span>●</span> Prompt-injection defense</div>
+      <h1>Make the untrusted web<br><em>safe to parse.</em></h1>
+      <p>Render a public webpage, remove visually hidden instructions and Unicode smuggling, then inspect the sanitized content before it reaches your AI.</p>
+    </section>
+
+    <section class="scanner-card" aria-labelledby="scanner-title">
+      <div class="card-heading">
+        <div>
+          <p class="step-label">New scan</p>
+          <h2 id="scanner-title">Inspect a webpage</h2>
+        </div>
+        <span class="browser-badge">Headless Chromium</span>
+      </div>
+
+      <form id="scan-form">
+        <label for="url">Public webpage URL</label>
+        <div class="url-row">
+          <div class="url-field">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg>
+            <input id="url" name="url" type="url" required autocomplete="url" spellcheck="false" placeholder="https://example.com/article">
+          </div>
+          <button id="submit-button" type="submit">
+            <span class="button-label">Scan page</span>
+            <span class="button-loader" aria-hidden="true"></span>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+        <details class="advanced-options">
+          <summary>Advanced settings</summary>
+          <div class="form-options">
+            <label class="switch-label">
+              <input id="strict-mode" type="checkbox" checked>
+              <span class="switch" aria-hidden="true"></span>
+              Strict detection
+            </label>
+            <label class="timeout-label" for="timeout">Timeout
+              <select id="timeout">
+                <option value="10">10 seconds</option>
+                <option value="15" selected>15 seconds</option>
+                <option value="30">30 seconds</option>
+              </select>
+            </label>
+          </div>
+        </details>
+      </form>
+      <div id="error" class="error-message" role="alert" hidden></div>
+    </section>
+
+    <section id="results" class="results" aria-live="polite" hidden>
+      <div class="results-heading">
+        <div>
+          <p class="step-label">Scan complete</p>
+          <h2>Inspection results</h2>
+        </div>
+        <button id="new-scan" class="secondary-button" type="button">New scan</button>
+      </div>
+
+      <div class="summary-grid">
+        <article class="metric-card verdict-card">
+          <p>Verdict</p>
+          <div class="verdict-line"><span id="verdict-icon" class="verdict-icon">✓</span><strong id="verdict">No threat detected</strong></div>
+          <small id="execution-time">Completed in 0 ms</small>
+        </article>
+        <article class="metric-card score-card">
+          <div><p>Threat score</p><strong><span id="score">0</span><small>/100</small></strong></div>
+          <div id="score-ring" class="score-ring"><span></span></div>
+        </article>
+        <article class="metric-card">
+          <p>Defenses applied</p>
+          <strong id="action-count">0</strong>
+          <small>sanitization actions</small>
+        </article>
+        <article class="metric-card">
+          <p>Output size</p>
+          <strong id="character-count">0</strong>
+          <small>clean characters</small>
+        </article>
+      </div>
+
+      <div class="content-grid">
+        <article class="panel text-panel">
+          <div class="panel-heading">
+            <div><span class="panel-kicker">Sanitized output</span><h3>Formatted content</h3></div>
+            <button id="copy-text" class="copy-button" type="button">Copy text</button>
+          </div>
+          <div id="formatted-text" class="formatted-text" tabindex="0"></div>
+          <details class="raw-output">
+            <summary>View raw API output</summary>
+            <div class="raw-heading">
+              <span>JSON response</span>
+              <button id="copy-raw" class="copy-button" type="button">Copy JSON</button>
+            </div>
+            <pre id="raw-output" tabindex="0"></pre>
+          </details>
+        </article>
+
+        <aside class="panel audit-panel">
+          <div class="panel-heading"><div><span class="panel-kicker">Security report</span><h3>Audit trail</h3></div></div>
+          <div id="actions" class="audit-section"></div>
+          <div id="findings" class="audit-section"></div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="empty-features" class="features" aria-label="SafeParse pipeline">
+      <article><span>01</span><div><h3>Render</h3><p>Execute the page in an isolated headless browser.</p></div></article>
+      <article><span>02</span><div><h3>Inspect</h3><p>Evaluate computed styles and hidden DOM content.</p></div></article>
+      <article><span>03</span><div><h3>Neutralize</h3><p>Clean Unicode and flag injection signatures.</p></div></article>
+    </section>
+  </main>
+
+  <footer><span>SafeParse runs locally. Submitted URLs are processed by your machine.</span><a href="/health">Service health</a></footer>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

@@ -75,6 +75,7 @@ safeparse/
 ├── app/
 │   ├── __init__.py
 │   ├── main.py                   # FastAPI application entrypoint
+│   ├── static/                   # Local scanning dashboard (HTML/CSS/JS)
 │   ├── api/
 │   │   ├── __init__.py
 │   │   └── v1/
@@ -165,9 +166,9 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ```
 
-The API will be live at `http://localhost:8000`. Interactive OpenAPI documentation will be available at `http://localhost:8000/docs`, and the health check is available at `GET /health`.
+Open `http://localhost:8000` for the local scanning dashboard. Paste a URL to see readable formatted content, the security audit, and an expandable raw JSON response. Interactive OpenAPI documentation is available at `http://localhost:8000/docs`, and the health check is available at `GET /health`.
 
-Try it with a public webpage:
+You can also submit a public webpage from the command line:
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/sanitize" -H "Content-Type: application/json" -d '{"url":"https://example.com","timeout_seconds":15,"strict_mode":true}' | python3 -m json.tool

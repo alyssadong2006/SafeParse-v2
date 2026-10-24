@@ -113,7 +113,18 @@ async def render(url: str, timeout_seconds: int) -> RenderResult:
                 if "ERR_HTTP2_PROTOCOL_ERROR" not in str(exc):
                     raise
                 html, final_url = await _fetch_html(url, timeout_seconds)
-                # A base URL lets relative styles/scripts retain browser semantics.
+                # The failed navigation can leave its renderer unstable. Use a fresh,
+                # script-disabled context for the static fallback; page.evaluate still
+                # works, but untrusted page scripts cannot crash the replacement page.
+                await context.close()
+                context = await browser.new_context(
+                    java_script_enabled=False,
+                    ignore_https_errors=False,
+                    service_workers="block",
+                )
+                page = await context.new_page()
+                await page.route("**/*", protect_request)
+                # A base URL lets relative styles retain browser semantics.
                 base = '<base href="{}">'.format(final_url.replace('"', '&quot;'))
                 if "<head" in html.lower():
                     head_end = html.lower().find(">", html.lower().find("<head"))
