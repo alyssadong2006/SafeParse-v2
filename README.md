@@ -168,6 +168,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 Open `http://localhost:8000` for the local scanning dashboard. Paste a URL to see readable formatted content, the security audit, and an expandable raw JSON response. Interactive OpenAPI documentation is available at `http://localhost:8000/docs`, and the health check is available at `GET /health`.
 
+This command works on macOS, Linux, and Windows, including Uvicorn's reload mode. SafeParse runs Playwright on a dedicated subprocess-capable event loop: the Proactor implementation on Windows and the platform-default Unix implementation on macOS/Linux. This avoids the `NotImplementedError` that occurs when Playwright is launched from a Windows selector event loop.
+
 You can also submit a public webpage from the command line:
 
 ```bash

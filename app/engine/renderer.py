@@ -11,6 +11,7 @@ from playwright.async_api import Error as PlaywrightError, async_playwright
 
 from config import settings
 from app.engine.dom_cleaner import DOM_CLEANER_SCRIPT
+from app.engine.subprocess_loop import subprocess_event_loop
 
 
 class UnsafeURLError(ValueError):
@@ -78,6 +79,11 @@ async def _fetch_html(url: str, timeout_seconds: int):
 
 
 async def render(url: str, timeout_seconds: int) -> RenderResult:
+    """Render a URL on an event loop that supports Playwright's subprocess."""
+    return await subprocess_event_loop.run(_render(url, timeout_seconds))
+
+
+async def _render(url: str, timeout_seconds: int) -> RenderResult:
     await validate_public_url(url)
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(headless=True)
