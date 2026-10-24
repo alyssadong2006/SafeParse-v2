@@ -1,0 +1,8 @@
+services:
+  safeparse:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      SAFEPARSE_ALLOW_PRIVATE_NETWORKS: "false"
+    init: true
