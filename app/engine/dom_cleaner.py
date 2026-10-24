@@ -1,7 +1,17 @@
 """Browser-side DOM visibility inspection script."""
 
-# This expression is evaluated after the page has settled. It marks invisible nodes,
-# clones the DOM, removes marked/non-content nodes, and returns plain text plus an audit.
+"""
+Injects JavaScript code into a webpage. 
+Inspects webpage for:
+1. Hidden attributes: Elements marked with `hidden` or `aria-hidden="true"`.
+2. CSS properties: Elements with `display: none`, `visibility: hidden`, `opacity: 0`, 
+   `font-size: 0`, or clipped content.
+3. Zero font size or clipped content: Text formatted with `font-size: 0` or clipped 
+   using `clip-path` or `clip`.
+4. Color matching: Text with foreground color matching the background color.
+5. Off-screen positioning: Elements positioned off-screen using `position: absolute` or
+   `position: fixed` with coordinates outside the viewport.
+"""
 DOM_CLEANER_SCRIPT = r"""
 () => {
   const findings = [];

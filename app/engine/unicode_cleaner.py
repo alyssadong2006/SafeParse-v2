@@ -1,4 +1,18 @@
 """Unicode normalization and invisible-character detection."""
+
+"""
+A text-level filter that targets characters invisible to humans or used to confuse LLMs:
+1. Zero Width & Invisible Characters: 
+    Removes non-printing characters (eg. \u200B, zero-width joiners, and soft hyphens) used
+    to break up text or hide instructions within normal words
+2. Homoglyph Normalization:
+    Replaces look-alike characters (eg. Cryllic 'а' vs Latin 'a') with standard
+    ASCII/Unicode equivalents so adversial text can't bypass keyword checks or system 
+    prompts.
+3. Control & BIDI overrides:
+    Strips dangerous control characters and bidirectional text override signals 
+"""
+
 import unicodedata
 from dataclasses import dataclass
 from typing import List

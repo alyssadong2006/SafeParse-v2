@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from config import settings
 from app.api.v1.endpoints import router
 
+# Take any logs above INFO level and send them to the console.
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(

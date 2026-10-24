@@ -11,7 +11,7 @@ class Rule:
     weight: float
     reason: str
 
-
+# Relies on harcoded rules, regular expressions, and keyword matches. 
 RULES = (
     Rule("control_token", re.compile(r"<\|(?:im_start|im_end|system|assistant)\|>|\[/?INST\]|</?system\b|###\s*(?:system|assistant)\s*:", re.I), 0.55, "LLM control token or role delimiter"),
     Rule("instruction_override", re.compile(r"\b(?:ignore|disregard|forget|override)\b.{0,80}\b(?:previous|prior|above|system|developer|instructions?|prompt)\b", re.I | re.S), 0.55, "instruction override language"),

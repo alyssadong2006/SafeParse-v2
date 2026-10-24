@@ -18,7 +18,23 @@ from app.telemetry.logger import log_audit
 
 router = APIRouter()
 
+"""
+/sanitize endpoint: Accepts a URL and optional timeout, renders the page, sanitizes the
+ content, and returns a structured response with sanitized data, security audit, and 
+ performance metrics.
 
+Three stages:
+1. DOM Cleaning and Normalization:
+    Strips out dangerous or hidden elements (eg. <script> tags, hidden CSS, zero-width
+    characters, and invisible text) using modules dom_cleaner.py and unicode_cleaner.py.
+2. Security & Threat Detection:
+    Scans the cleaned text for prompt injection attempts, jailbreaks, or sus heuristics
+    using heuristics.py and guardrail_model.py. 
+3. Safe Enclosure:
+    Wraps the sanitized output in strict safety bounderies (prompt_enclosure.py) so that
+    when the text is passed to an LLM, the model treats it strictly as untrusted data rather
+    than executable instructions. 
+"""
 @router.post("/sanitize", response_model=SanitizeResponse)
 async def sanitize(request: SanitizeRequest):
     started = time.perf_counter()
