@@ -295,6 +295,16 @@ python test_suite/mock_server.py
 
 This serves the fixtures at `http://127.0.0.1:5000`. SafeParse blocks loopback URLs by default; for local development only, start the API with `SAFEPARSE_ALLOW_PRIVATE_NETWORKS=true` if you want to submit these fixtures to the API.
 
+### Public Indirect-Injection Test Page
+
+For a publicly hosted, purpose-built red-team fixture, scan:
+
+```text
+https://idpr.onrender.com/pages/hidden-attacks.html
+```
+
+The page contains deliberate CSS-hidden instructions, invisible Unicode, off-screen content, and other indirect prompt-injection techniques. Use it only for controlled security testing, and do not send its output to an unsandboxed agent with tools or access to sensitive data.
+
 ### Test Case Validation Matrix
 
 | Test Module | Attack Vector Tested | Expected Result |
