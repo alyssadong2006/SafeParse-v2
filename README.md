@@ -59,7 +59,7 @@ When an AI system fetches web content to summarize or answer questions, attacker
 * **Dynamic Nonce Enclosure:** Wraps output within randomized XML tags (e.g., `<untrusted_data_8x2f>`) to prevent context confusion in downstream models.
 * **Detailed Threat Diagnostics:** Returns structured audit reports showing intercepted malicious snippets, triggered rule reasons, and an overall risk score.
 * **Network Boundary Protection:** Rejects non-HTTP protocols, credential-bearing URLs, and private, loopback, link-local, or reserved network destinations. Redirects and browser subresource requests are validated as well.
-* **Resilient Rendering:** Uses Chromium for normal rendering and a size-limited HTTP/1.1 HTML fallback for origins whose HTTP/2 configuration is incompatible with headless Chromium.
+* **Resilient Rendering:** Reuses one warmed Chromium process with an isolated browser context per request, and uses a size-limited HTTP/1.1 HTML fallback for origins whose HTTP/2 configuration is incompatible with headless Chromium.
 
 ---
 
@@ -84,9 +84,13 @@ safeparse/
 │   │       └── models.py         # Pydantic schemas for requests/responses
 │   ├── engine/
 │   │   ├── __init__.py
-│   │   ├── renderer.py           # Playwright headless browser setup
+│   │   ├── renderer.py           # Shared Playwright browser & per-request contexts
+│   │   ├── subprocess_loop.py    # Cross-platform subprocess event loop
 │   │   ├── dom_cleaner.py        # Computed style & CSS visibility filter
 │   │   └── unicode_cleaner.py    # Zero-width & control character stripper
+│   ├── services/
+│   │   ├── __init__.py
+│   │   └── sanitizer.py          # Sanitization pipeline orchestration
 │   ├── security/
 │   │   ├── __init__.py
 │   │   ├── heuristics.py         # Prompt-injection regex signatures
