@@ -1,8 +1,8 @@
 # SafeParse
-<img width="540" height="975" alt="image" src="https://github.com/user-attachments/assets/809c947d-7376-44f9-af8d-8c376dc28bfe" />
-
 
 ## Overview
+
+<a href="https://github.com/user-attachments/assets/809c947d-7376-44f9-af8d-8c376dc28bfe"><img align="right" width="260" src="https://github.com/user-attachments/assets/809c947d-7376-44f9-af8d-8c376dc28bfe" alt="SafeParse dashboard showing a completed webpage scan, threat assessment, and sanitized output"></a>
 
 When an AI system fetches web content to summarize or answer questions, attackers can inject malicious commands using hidden elements (e.g., `<div style="display:none">Ignore previous instructions...</div>`, zero-width Unicode spaces, or white-on-white text). Humans browsing the page won't see these injected instructions, but an AI parser will read and execute them.
 
