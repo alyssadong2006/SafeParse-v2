@@ -1,4 +1,25 @@
 """Hybrid prompt-injection classification and aggregate threat scoring."""
+
+"""
+- Lazy-loads the AI model:
+    Waits until the first request before loading the Hugging Face model, saving RAM
+    on server startup
+- Thread-safe processing: 
+    Uses thread lock to prevent multiple simultaneous requests from crashing CPU or memory
+    resources (Yes I have a worrying computer and I'll keep it that way :D )
+- Smart Long-text handling: 
+    Breaks large documents into 512-token chunks, samples key sections, and scans them 
+    all so attackers can't hide malicious prompts in a long web page
+- Extracts the worst excerpt: 
+    Identifies the single chunk with the highest injection probability and grabs a
+    300-character snippet of the offended content for logging
+- Feature Switch: 
+    Allows to enable/disable the ML model 
+- Hybrid Risk Aggregrator: 
+    Combines up to four security signals (heuristics, hidden DOM elements, zero-width
+    unicode characters, and the ML prediction score) into a single score between 0.0 and 1.0
+"""
+
 import threading
 from dataclasses import dataclass
 from typing import Iterable, List, Optional

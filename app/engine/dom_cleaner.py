@@ -12,6 +12,7 @@ Inspects webpage for:
 5. Off-screen positioning: Elements positioned off-screen using `position: absolute` or
    `position: fixed` with coordinates outside the viewport.
 """
+
 DOM_CLEANER_SCRIPT = r"""
 () => {
   const findings = [];
