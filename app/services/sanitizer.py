@@ -33,6 +33,7 @@ def _inspection_text(clean_text: str, rendered: RenderResult) -> str:
 
 
 def _public_findings(
+    clean_text: str,
     rendered: RenderResult,
     unicode_findings: list[UnicodeFinding],
     heuristic_findings: list[dict],
@@ -47,15 +48,30 @@ def _public_findings(
         }
         for item in unicode_findings
     )
-    findings.extend(
-        {
-            "type": item["type"],
-            "reason": item["reason"],
-            "intercepted_content": item["intercepted_content"],
-        }
-        for item in heuristic_findings
-    )
+    for item in heuristic_findings:
+        text_start = item["text_start"]
+        text_end = item["text_end"]
+        is_visible = 0 <= text_start < text_end <= len(clean_text)
+        findings.append(
+            {
+                "type": item["type"],
+                "reason": item["reason"],
+                "intercepted_content": item["intercepted_content"],
+                "text_start": text_start if is_visible else None,
+                "text_end": text_end if is_visible else None,
+            }
+        )
     if model_prediction is not None:
+        text_start = (
+            clean_text.find(model_prediction.intercepted_content)
+            if model_prediction.intercepted_content
+            else -1
+        )
+        text_end = (
+            text_start + len(model_prediction.intercepted_content)
+            if text_start >= 0
+            else None
+        )
         findings.append(
             {
                 "type": "prompt_injection_model",
@@ -63,6 +79,8 @@ def _public_findings(
                     model_prediction.injection_probability
                 ),
                 "intercepted_content": model_prediction.intercepted_content,
+                "text_start": text_start if text_start >= 0 else None,
+                "text_end": text_end,
             }
         )
     return findings
@@ -141,6 +159,7 @@ async def sanitize_request(
             flagged_elements=[
                 FlaggedElement(**item)
                 for item in _public_findings(
+                    clean_text,
                     rendered,
                     unicode_findings,
                     heuristic_findings,

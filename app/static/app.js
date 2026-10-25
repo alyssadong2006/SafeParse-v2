@@ -7,6 +7,7 @@ const actionLabels = {
   STRIPPED_HIDDEN_CSS_ELEMENTS: 'Removed visually hidden elements',
   REMOVED_INVISIBLE_UNICODE_CHARS: 'Removed invisible Unicode characters',
   FLAGGED_PROMPT_INJECTION_KEYWORDS: 'Flagged prompt-injection language',
+  FLAGGED_ML_PROMPT_INJECTION: 'Flagged content identified by the ML classifier',
 };
 
 function setLoading(loading) {
@@ -30,7 +31,42 @@ function addAuditItem(container, title, detail, snippet, finding = false) {
   container.appendChild(item);
 }
 
-function renderFormattedText(text) {
+function normalizedFlaggedRanges(findings, textLength) {
+  const ranges = findings
+    .filter(item => Number.isInteger(item.text_start) && Number.isInteger(item.text_end))
+    .map(item => ({ start: item.text_start, end: item.text_end }))
+    .filter(range => range.start >= 0 && range.start < range.end && range.end <= textLength)
+    .sort((left, right) => left.start - right.start || left.end - right.end);
+
+  return ranges.reduce((merged, range) => {
+    const previous = merged[merged.length - 1];
+    if (previous && range.start <= previous.end) {
+      previous.end = Math.max(previous.end, range.end);
+    } else {
+      merged.push(range);
+    }
+    return merged;
+  }, []);
+}
+
+function appendHighlightedText(container, text, textOffset, ranges) {
+  let cursor = 0;
+  ranges.forEach(range => {
+    const start = Math.max(0, range.start - textOffset);
+    const end = Math.min(text.length, range.end - textOffset);
+    if (start >= end || end <= cursor) return;
+    if (start > cursor) container.appendChild(document.createTextNode(text.slice(cursor, start)));
+    const highlight = document.createElement('mark');
+    highlight.className = 'flagged-text';
+    highlight.title = 'Potential prompt-injection content';
+    highlight.textContent = text.slice(Math.max(cursor, start), end);
+    container.appendChild(highlight);
+    cursor = end;
+  });
+  if (cursor < text.length) container.appendChild(document.createTextNode(text.slice(cursor)));
+}
+
+function renderFormattedText(text, findings) {
   const container = document.querySelector('#formatted-text');
   container.replaceChildren();
   if (!text.trim()) {
@@ -43,11 +79,16 @@ function renderFormattedText(text) {
 
   // Keep the page's paragraph boundaries while inserting content as text only,
   // never as executable HTML from the untrusted source.
+  const ranges = normalizedFlaggedRanges(findings, text.length);
   const blocks = text.split(/\n\s*\n|\n(?=[A-Z][^\n]{0,80}$)/).filter(block => block.trim());
+  let searchOffset = 0;
   blocks.forEach(block => {
+    const content = block.trim();
+    const textOffset = text.indexOf(content, searchOffset);
     const paragraph = document.createElement('p');
-    paragraph.textContent = block.trim();
+    appendHighlightedText(paragraph, content, textOffset, ranges);
     container.appendChild(paragraph);
+    searchOffset = textOffset + content.length;
   });
 }
 
@@ -67,7 +108,7 @@ function renderResults(payload) {
   ring.style.setProperty('--green', score >= 35 ? '#bb3d3d' : score >= 20 ? '#ad6519' : '#147b50');
   document.querySelector('#action-count').textContent = audit.threat_actions_taken.length;
   document.querySelector('#character-count').textContent = cleanText.length.toLocaleString();
-  renderFormattedText(cleanText);
+  renderFormattedText(cleanText, audit.flagged_elements);
   document.querySelector('#raw-output').textContent = JSON.stringify(payload, null, 2);
   document.querySelector('.raw-output').open = false;
 

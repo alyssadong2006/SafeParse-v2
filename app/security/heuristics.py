@@ -33,6 +33,8 @@ def scan(text: str):
                 "type": "prompt_injection",
                 "reason": rule.reason,
                 "intercepted_content": text[start:end].replace("\n", " ")[:300],
+                "text_start": match.start(),
+                "text_end": match.end(),
                 "rule": rule.name,
                 "weight": rule.weight,
             })

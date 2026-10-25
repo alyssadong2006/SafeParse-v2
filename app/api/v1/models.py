@@ -20,6 +20,8 @@ class FlaggedElement(BaseModel):
     type: str
     reason: str
     intercepted_content: str
+    text_start: Optional[int] = Field(default=None, ge=0)
+    text_end: Optional[int] = Field(default=None, ge=0)
 
 
 class SanitizedData(BaseModel):
