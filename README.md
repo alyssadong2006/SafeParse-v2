@@ -2,7 +2,7 @@
 
 ## Overview
 
-<table>
+<table border="0" cellpadding="0" cellspacing="0" frame="void" rules="none">
   <tr>
     <td valign="top">
       When an AI system fetches web content to summarize or answer questions, attackers can inject malicious commands using hidden elements (e.g., <code>&lt;div style="display:none"&gt;Ignore previous instructions...&lt;/div&gt;</code>, zero-width Unicode spaces, or white-on-white text). Humans browsing the page won't see these injected instructions, but an AI parser will read and execute them.<br><br>
