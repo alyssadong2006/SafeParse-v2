@@ -2,11 +2,17 @@
 
 ## Overview
 
-<a href="https://github.com/user-attachments/assets/809c947d-7376-44f9-af8d-8c376dc28bfe"><img align="right" width="260" src="https://github.com/user-attachments/assets/809c947d-7376-44f9-af8d-8c376dc28bfe" alt="SafeParse dashboard showing a completed webpage scan, threat assessment, and sanitized output"></a>
-
-When an AI system fetches web content to summarize or answer questions, attackers can inject malicious commands using hidden elements (e.g., `<div style="display:none">Ignore previous instructions...</div>`, zero-width Unicode spaces, or white-on-white text). Humans browsing the page won't see these injected instructions, but an AI parser will read and execute them.
-
-**SafeParse** sits between your AI system and the untrusted web. It renders webpages in a headless browser environment, calculates computed CSS styles in real time, strips hidden DOM elements, neutralizes non-printable Unicode smuggling, evaluates threat risk via heuristic checks, and wraps sanitized text inside randomized nonce containers before handing it off to your LLM.
+<table>
+  <tr>
+    <td valign="top">
+      When an AI system fetches web content to summarize or answer questions, attackers can inject malicious commands using hidden elements (e.g., <code>&lt;div style="display:none"&gt;Ignore previous instructions...&lt;/div&gt;</code>, zero-width Unicode spaces, or white-on-white text). Humans browsing the page won't see these injected instructions, but an AI parser will read and execute them.<br><br>
+      <strong>SafeParse</strong> sits between your AI system and the untrusted web. It renders webpages in a headless browser environment, calculates computed CSS styles in real time, strips hidden DOM elements, neutralizes non-printable Unicode smuggling, evaluates threat risk via heuristic checks, and wraps sanitized text inside randomized nonce containers before handing it off to your LLM.
+    </td>
+    <td width="280" valign="top" align="center">
+      <a href="https://github.com/user-attachments/assets/809c947d-7376-44f9-af8d-8c376dc28bfe"><img width="260" src="https://github.com/user-attachments/assets/809c947d-7376-44f9-af8d-8c376dc28bfe" alt="SafeParse dashboard showing a completed webpage scan, threat assessment, and sanitized output"></a>
+    </td>
+  </tr>
+</table>
 
 ---
 
