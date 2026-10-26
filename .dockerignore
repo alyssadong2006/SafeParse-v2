@@ -7,3 +7,5 @@ __pycache__
 *.pyc
 training/raw/
 training/data*/
+safeparse-ipi-*.zip
+safeparse-ipi-*.zip.sha256

@@ -13,3 +13,5 @@ venv/
 training/raw/
 training/data*/
 models/*/
+/safeparse-ipi-*.zip
+/safeparse-ipi-*.zip.sha256

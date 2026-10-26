@@ -174,6 +174,38 @@ python -m playwright install chromium
 
 ```
 
+On Linux, use `python -m playwright install --with-deps chromium` if browser system dependencies are missing.
+
+5. Download the trained model—**no retraining is needed**:
+
+Open the [SafeParse IPI Model v1 pre-release](https://github.com/alyssadong2006/SafeParse/releases/tag/model-v1) and download these two **Assets**:
+
+* [`safeparse-ipi-v1.zip`](https://github.com/alyssadong2006/SafeParse/releases/download/model-v1/safeparse-ipi-v1.zip)
+* [`safeparse-ipi-v1.zip.sha256`](https://github.com/alyssadong2006/SafeParse/releases/download/model-v1/safeparse-ipi-v1.zip.sha256)
+
+The model ZIP is approximately 237 MiB. GitHub's automatic **Source code** ZIP/tarball does **not** include the trained weights, and `git pull` does not download release assets. The training datasets and optional training dependencies are not needed to run the app.
+
+Place both downloaded files in the repository root. Before extracting, verify the ZIP checksum:
+
+```bash
+# macOS / Linux, from the directory containing both downloaded files:
+shasum -a 256 -c safeparse-ipi-v1.zip.sha256
+```
+
+On Windows PowerShell, use `Get-FileHash .\safeparse-ipi-v1.zip -Algorithm SHA256` and compare it with the hash in `safeparse-ipi-v1.zip.sha256`. The expected SHA-256 is:
+
+```text
+eb0f090eaa34c86516194715c0dc69f91253e8f4b79ce7b25964b32a37e272b9
+```
+
+If the checksum matches, extract the archive **from the repository root** (works on macOS, Linux and Windows):
+
+```bash
+python -m zipfile -e safeparse-ipi-v1.zip .
+```
+
+The resulting path must be `models/safeparse-ipi-v1/model.safetensors`, not an extra nested wrapper directory. The archive also includes the tokenizer, configuration, training report, model card and dataset attribution/licensing notes. CPU inference is supported; no GPU is required. See [Running the Application](#running-the-application) below to start the server.
+
 The first sanitization request loads the trained SafeParse checkpoint from `models/safeparse-ipi-v1` (approximately 255 MiB of weights). Loading and inference are offline: there is no model download or fallback to an external classifier. The path is resolved relative to `config.py`, not the working directory. Checkpoints are git-ignored, so new checkouts/deployments must receive the trained model and tokenizer files; a local Docker build includes them when present. A missing checkpoint causes classification to fail explicitly. Set `SAFEPARSE_GUARDRAIL_MODEL_ENABLED=false` before starting the server if you need the lightweight rules-only mode.
 
 ---
@@ -200,6 +232,8 @@ curl -X POST "http://localhost:8000/api/v1/sanitize" -H "Content-Type: applicati
 ```
 
 ### Running with Docker
+
+Download and extract the model using installation step 5 **before building the image**. The local build copies the checkpoint from `models/safeparse-ipi-v1/`; it does not download release assets automatically.
 
 ```bash
 docker-compose up --build

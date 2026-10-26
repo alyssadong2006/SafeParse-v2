@@ -23,7 +23,7 @@ The default path is anchored to the project root, independently of the working d
 
 ## Deployment and future versions
 
-Checkpoint subdirectories are git-ignored. New checkouts and deployments must receive the trained weights, configuration and tokenizer files separately. Keep the training report with the artifact for traceability. Local Docker builds include these files when present, but exclude training corpus/download caches.
+Checkpoint subdirectories are git-ignored. For a new checkout, download the model ZIP and checksum from the [model-v1 pre-release](https://github.com/alyssadong2006/SafeParse/releases/tag/model-v1), verify the checksum, and extract the ZIP into the repository root. See the [main installation instructions](../README.md#installation) for macOS, Linux and Windows commands. GitHub's automatic source-code archives and `git pull` do not include the trained weights. New deployments must receive the trained weights, configuration and tokenizer files separately. Keep the training report with the artifact for traceability. Local Docker builds include these files when present, but exclude training corpus/download caches.
 
 Future training runs should use a new output directory, such as `--output-dir models/safeparse-ipi-v2`, rather than overwrite the active checkpoint. After reviewing that version, select it explicitly using `SAFEPARSE_GUARDRAIL_MODEL_NAME` and its validation-selected `SAFEPARSE_GUARDRAIL_MODEL_FLAG_THRESHOLD`. Restart the API process after changing configuration. Clear any environment override pointing to the former checkpoint location.
 
