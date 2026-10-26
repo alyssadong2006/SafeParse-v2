@@ -75,7 +75,7 @@ def _public_findings(
         findings.append(
             {
                 "type": "prompt_injection_model",
-                "reason": "Pretrained classifier detected prompt injection (confidence {:.1%})".format(
+                "reason": "SafeParse classifier detected prompt injection (confidence {:.1%})".format(
                     model_prediction.injection_probability
                 ),
                 "intercepted_content": model_prediction.intercepted_content,

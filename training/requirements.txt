@@ -1,0 +1,6 @@
+# Optional, training-only dependencies (not needed by the SafeParse app).
+torch
+transformers
+sentencepiece
+huggingface-hub
+tqdm>=4.27,<5

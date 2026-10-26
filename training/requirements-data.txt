@@ -1,0 +1,2 @@
+# Dataset collection only; no model/GPU libraries required.
+pyarrow>=15,<20

@@ -22,6 +22,7 @@
 
 import threading
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Iterable, List, Optional
 
 from config import settings
@@ -63,13 +64,18 @@ class PromptInjectionClassifier:
         try:
             from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+            model_path = Path(settings.guardrail_model_name).expanduser().resolve()
+            if not model_path.is_dir():
+                raise GuardrailModelError(
+                    "Trained guardrail model directory is missing: {}. "
+                    "Provide the trained checkpoint or set SAFEPARSE_GUARDRAIL_MODEL_NAME "
+                    "to its local directory.".format(model_path)
+                )
             tokenizer = AutoTokenizer.from_pretrained(
-                settings.guardrail_model_name,
-                revision=settings.guardrail_model_revision,
+                str(model_path), local_files_only=True, trust_remote_code=False,
             )
             model = AutoModelForSequenceClassification.from_pretrained(
-                settings.guardrail_model_name,
-                revision=settings.guardrail_model_revision,
+                str(model_path), local_files_only=True, trust_remote_code=False,
                 use_safetensors=True,
             )
             model.eval()
@@ -91,7 +97,7 @@ class PromptInjectionClassifier:
             raise
         except Exception as exc:
             raise GuardrailModelError(
-                "The pretrained guardrail model could not be loaded"
+                "The local guardrail model could not be loaded"
             ) from exc
 
     def predict(self, text: str) -> ModelPrediction:
@@ -141,7 +147,7 @@ class PromptInjectionClassifier:
                 return ModelPrediction(round(probability, 4), excerpt)
             except Exception as exc:
                 raise GuardrailModelError(
-                    "The pretrained guardrail model could not classify the page"
+                    "The local guardrail model could not classify the page"
                 ) from exc
 
 

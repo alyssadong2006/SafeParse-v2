@@ -1,6 +1,9 @@
 .git
+.pi
 .venv
 venv
 __pycache__
 .pytest_cache
 *.pyc
+training/raw/
+training/data*/

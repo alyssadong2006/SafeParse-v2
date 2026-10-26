@@ -1,0 +1,278 @@
+{
+  "schema_version": 1,
+  "seed": 13,
+  "candidate_cap": 5000,
+  "per_source_class_split_cap": 1000,
+  "max_characters": 50000,
+  "near_duplicate_jaccard": 0.85,
+  "sources": [
+    {
+      "id": "tool_response",
+      "repo": "rgeada/tool-response-injections",
+      "revision": "39050de797f2694f0d72e1086003154de1919379",
+      "license": "Apache-2.0 (both named upstream datasets also declare Apache-2.0)",
+      "files": [
+        "tool_response_injections_train.csv",
+        "tool_response_injections_test.csv"
+      ],
+      "file_sha256": {
+        "tool_response_injections_train.csv": "4d7965bae0d0b1db3c50377596893923521f47a0119b0a21b83437617f387e6a",
+        "tool_response_injections_test.csv": "ab5d1f4435b9652f74e9c09a5774d306b09bdce4bb96fe2f348c66eafaffbfc9"
+      },
+      "notes": "Synthetic paired tool outputs. Use serialized untrusted response text only. Repartition original splits to keep both response pairs and repeated injection payloads disjoint, discarding cross-partition combinations.",
+      "downloaded_files": [
+        {
+          "file": "tool_response_injections_train.csv",
+          "sha256": "4d7965bae0d0b1db3c50377596893923521f47a0119b0a21b83437617f387e6a",
+          "bytes": 10915084
+        },
+        {
+          "file": "tool_response_injections_test.csv",
+          "sha256": "ab5d1f4435b9652f74e9c09a5774d306b09bdce4bb96fe2f348c66eafaffbfc9",
+          "bytes": 2829798
+        },
+        {
+          "file": "README.md",
+          "sha256": "4f9d0a3f1abc9c7f62540478f2e2d313cc0effb5aa38773f2e1b6f118ae33be0",
+          "bytes": 2668
+        }
+      ],
+      "extracted_class_counts": {
+        "0": 7396,
+        "1": 4915
+      }
+    },
+    {
+      "id": "bipia",
+      "repo": "geodesic-research/bipia",
+      "revision": "003f58372e1696726b7cddde274a74bee0b1938a",
+      "license": "CC-BY-SA-4.0 (mixed upstream components; see dataset card)",
+      "files": [
+        "bipia/train-00000-of-00001.parquet"
+      ],
+      "file_sha256": {
+        "bipia/train-00000-of-00001.parquet": "2ec55ad51b2f14c0d211a76f9ec49dcfca308afdecc24654642308e5ab8e7c0d"
+      },
+      "notes": "BIPIA mirror. Its examples use upstream BIPIA test attacks: do not claim an independent evaluation on the original BIPIA test benchmark after training. Recovered clean controls are derived, not independently annotated.",
+      "downloaded_files": [
+        {
+          "file": "bipia/train-00000-of-00001.parquet",
+          "sha256": "2ec55ad51b2f14c0d211a76f9ec49dcfca308afdecc24654642308e5ab8e7c0d",
+          "bytes": 4701005
+        },
+        {
+          "file": "README.md",
+          "sha256": "509818ae4abb11cac38c2c951a8652e1914c5965e93be803c4583374eba06aac",
+          "bytes": 3852
+        }
+      ],
+      "extracted_class_counts": {
+        "0": 178,
+        "1": 25350
+      }
+    },
+    {
+      "id": "llmail",
+      "repo": "microsoft/llmail-inject-challenge",
+      "revision": "1063bdf01ec8762b812d5e06ee768a06faa5a6f7",
+      "license": "MIT",
+      "files": [
+        "data/labelled_unique_submissions_phase2.json",
+        "data/emails_for_fp_tests.json"
+      ],
+      "file_sha256": {
+        "data/labelled_unique_submissions_phase2.json": "f89af984e345430c3b357903890e30867bf4676f4ef10c138cc7bad218e890b8",
+        "data/emails_for_fp_tests.json": "4ddd950b5dbaa8548f5597c886d8e09a051ba07f80a9291fdcca9c2397d22abe"
+      },
+      "notes": "Use only attack_attempt=True submissions, regardless of attack success. False or unknown submissions are excluded, not relabeled benign. Dedicated false-positive test emails supply negative examples. Labels include API-trigger and LLM-judge annotations.",
+      "downloaded_files": [
+        {
+          "file": "data/labelled_unique_submissions_phase2.json",
+          "sha256": "f89af984e345430c3b357903890e30867bf4676f4ef10c138cc7bad218e890b8",
+          "bytes": 68586935
+        },
+        {
+          "file": "data/emails_for_fp_tests.json",
+          "sha256": "4ddd950b5dbaa8548f5597c886d8e09a051ba07f80a9291fdcca9c2397d22abe",
+          "bytes": 55486
+        },
+        {
+          "file": "README.md",
+          "sha256": "d85767e349ab1abbaf43db9390c4e906e34954e5df3a1335c8f1516efa64e812",
+          "bytes": 23628
+        }
+      ],
+      "extracted_class_counts": {
+        "1": 21007,
+        "0": 203
+      }
+    },
+    {
+      "id": "nemotron",
+      "repo": "nvidia/Nemotron-RL-Agentic-Indirect-Prompt-Injection-v1",
+      "revision": "d738d4f361cc38bb4d7a42b9066776dade5332f5",
+      "license": "CC-BY-4.0",
+      "files": [
+        "train.jsonl"
+      ],
+      "file_sha256": {
+        "train.jsonl": "3329da17564a7eb287e2730fc7d6956e1f4fe51e8950ac4f110b3c37e78cf3b9"
+      },
+      "notes": "Synthetic successful attacks. Extract only the unique environment string containing the exact recorded injection, never system/user prompts or attack metadata. Exact-removal controls are derived labels, not independently annotated.",
+      "downloaded_files": [
+        {
+          "file": "train.jsonl",
+          "sha256": "3329da17564a7eb287e2730fc7d6956e1f4fe51e8950ac4f110b3c37e78cf3b9",
+          "bytes": 11703379
+        },
+        {
+          "file": "README.md",
+          "sha256": "0386806252047746e06cba58bba3f91905aa02ccdd4def963022440e6d5de851",
+          "bytes": 13239
+        }
+      ],
+      "extracted_class_counts": {
+        "1": 1268,
+        "0": 1253
+      }
+    },
+    {
+      "id": "nexus",
+      "repo": "EliasHossain/nexus-ipi",
+      "revision": "ad93a091b4c5738d773d5551d6377222801727c1",
+      "license": "CC-BY-4.0",
+      "files": [
+        "ipi_v2.jsonl"
+      ],
+      "file_sha256": {
+        "ipi_v2.jsonl": "4accc18c5a5aefb2a17d43bf42c6fbac4d58fdea8a72dd41322bf61a8b4b67e5"
+      },
+      "notes": "Separate source-held-out synthetic benchmark, not used to train or choose thresholds. Extract only context.history; verify paired adv/ctrl suffix and safety_label agree. Five templates: not a realistic production test set.",
+      "downloaded_files": [
+        {
+          "file": "ipi_v2.jsonl",
+          "sha256": "4accc18c5a5aefb2a17d43bf42c6fbac4d58fdea8a72dd41322bf61a8b4b67e5",
+          "bytes": 235206
+        },
+        {
+          "file": "README.md",
+          "sha256": "ed1e8939a96a350b70997b9425fa79508dc80ff6e6c708457d7136ae465f4ca9",
+          "bytes": 6842
+        }
+      ],
+      "extracted_class_counts": {
+        "1": 100,
+        "0": 100
+      }
+    }
+  ],
+  "audit": {
+    "tool_response_cross_partition_discarded": 2481,
+    "bipia_cross_partition_discarded": 15900,
+    "llmail_nonpositive_excluded": 16296,
+    "nemotron_ambiguous_payload": 4,
+    "nemotron_empty_control": 15,
+    "candidate_cap_discarded": 38753,
+    "near_duplicate_links": 37487,
+    "exact_duplicates_removed": 479,
+    "cross_fixed_split_component_rows": 310,
+    "final_cap_discarded": 12948
+  },
+  "splits": {
+    "train": {
+      "rows": 6197,
+      "class_counts": {
+        "1": 3974,
+        "0": 2223
+      },
+      "source_counts": {
+        "bipia": 1134,
+        "llmail": 1134,
+        "nemotron": 1929,
+        "tool_response": 2000
+      },
+      "label_quality_counts": {
+        "upstream_attack_assembly": 1000,
+        "derived_exact_removal": 1089,
+        "upstream_judge": 860,
+        "upstream_api_triggered": 140,
+        "upstream_fp_control": 134,
+        "upstream_synthetic_successful_attack": 974,
+        "upstream_synthetic_pair": 2000
+      },
+      "leakage_groups": 3092
+    },
+    "validation": {
+      "rows": 1449,
+      "class_counts": {
+        "1": 820,
+        "0": 629
+      },
+      "source_counts": {
+        "bipia": 172,
+        "llmail": 482,
+        "nemotron": 236,
+        "tool_response": 559
+      },
+      "label_quality_counts": {
+        "upstream_attack_assembly": 149,
+        "derived_exact_removal": 141,
+        "upstream_api_triggered": 67,
+        "upstream_judge": 402,
+        "upstream_fp_control": 13,
+        "upstream_synthetic_successful_attack": 118,
+        "upstream_synthetic_pair": 559
+      },
+      "leakage_groups": 997
+    },
+    "test": {
+      "rows": 1517,
+      "class_counts": {
+        "1": 822,
+        "0": 695
+      },
+      "source_counts": {
+        "bipia": 116,
+        "llmail": 499,
+        "nemotron": 350,
+        "tool_response": 552
+      },
+      "label_quality_counts": {
+        "upstream_attack_assembly": 95,
+        "derived_exact_removal": 195,
+        "upstream_api_triggered": 57,
+        "upstream_judge": 429,
+        "upstream_fp_control": 13,
+        "upstream_synthetic_successful_attack": 176,
+        "upstream_synthetic_pair": 552
+      },
+      "leakage_groups": 1001
+    },
+    "source_holdout": {
+      "rows": 117,
+      "class_counts": {
+        "1": 96,
+        "0": 21
+      },
+      "source_counts": {
+        "nexus": 117
+      },
+      "label_quality_counts": {
+        "upstream_synthetic_pair": 117
+      },
+      "leakage_groups": 19
+    }
+  },
+  "file_sha256": {
+    "train.jsonl": "db3642fe3e95e1d8e6768bba6708741a47ec84568ca09fe4a1923f103f3cc009",
+    "validation.jsonl": "ae0b24b25810b6e8ef3d0ee40058bc137619532cdea66313eda1d602c7f066c5",
+    "test.jsonl": "8fee00d1195200eda2c864e67629950f1afd6e0c4cdf3c84f1a3167f71f1910e",
+    "source_holdout.jsonl": "bf2e52df41b47af21d9a8e3d1f35affe4d4f1bbbec8325980ca9aad1d85c79b1"
+  },
+  "limitations": [
+    "Near-duplicate search is heuristic; residual template leakage is possible.",
+    "Derived controls need manual label review before deployment.",
+    "BIPIA upstream test attacks are used; original BIPIA is not an independent benchmark.",
+    "Synthetic/source artifacts and non-production class ratios can inflate accuracy."
+  ]
+}

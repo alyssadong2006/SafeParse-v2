@@ -7,3 +7,9 @@ venv/
 .venv/
 .env
 .DS_Store
+.pi/
+
+# Adversarial corpora, download caches, and locally trained checkpoints
+training/raw/
+training/data*/
+models/*/

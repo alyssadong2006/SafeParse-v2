@@ -1,5 +1,6 @@
 """Application configuration loaded from environment variables."""
 import os
+from pathlib import Path
 
 
 class Settings:
@@ -15,15 +16,11 @@ class Settings:
     guardrail_model_enabled = os.getenv("SAFEPARSE_GUARDRAIL_MODEL_ENABLED", "true").lower() == "true"
     guardrail_model_name = os.getenv(
         "SAFEPARSE_GUARDRAIL_MODEL_NAME",
-        "deepset/deberta-v3-base-injection",
-    )
-    guardrail_model_revision = os.getenv(
-        "SAFEPARSE_GUARDRAIL_MODEL_REVISION",
-        "80dda00d0b0d9a03917a7685e2ddbcd28e04dbb1",
+        str(Path(__file__).resolve().parent / "models" / "safeparse-ipi-v1"),
     )
     guardrail_model_max_chunks = int(os.getenv("SAFEPARSE_GUARDRAIL_MODEL_MAX_CHUNKS", "8"))
     guardrail_model_flag_threshold = float(
-        os.getenv("SAFEPARSE_GUARDRAIL_MODEL_FLAG_THRESHOLD", "0.5")
+        os.getenv("SAFEPARSE_GUARDRAIL_MODEL_FLAG_THRESHOLD", "0.5029")
     )
 
 
