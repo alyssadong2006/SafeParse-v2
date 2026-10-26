@@ -161,7 +161,7 @@ async def test_url_row_limit_removal_labels_and_mobile_layout(dashboard):
     await expect(page.locator("#add-url")).to_be_enabled()
     assert await page.locator("#url-rows input").nth(4).input_value() == "https://example.com/5"
     await expect(page.locator("#url-rows input").nth(4)).to_be_focused()
-    await page.locator("#add-url").click()
+    await page.locator("#add-url svg").click()
     await expect(page.locator("#url-rows input").last).to_have_value("")
     labels = await page.locator(".url-entry label").all_text_contents()
     assert labels == [f"URL {index}" for index in range(1, 11)]
@@ -176,6 +176,9 @@ async def test_url_row_limit_removal_labels_and_mobile_layout(dashboard):
     await expect(page.locator(".remove-url")).to_be_disabled()
     await expect(page.locator("#url-count")).to_have_text("1 / 10 URLs")
     await expect(page.locator(".button-label")).to_have_text("Scan page")
+    last_row = await page.locator(".url-entry").last.bounding_box()
+    add_button = await page.locator("#add-url").bounding_box()
+    assert add_button["y"] - (last_row["y"] + last_row["height"]) >= 24
 
 
 @pytest.mark.asyncio
