@@ -39,14 +39,24 @@
       </div>
 
       <form id="scan-form">
-        <label for="url">Public webpage URL</label>
+        <fieldset class="mode-select">
+          <legend>Scan mode</legend>
+          <label class="mode-option"><input type="radio" name="scan-mode" value="single" checked><span>Single URL</span></label>
+          <label class="mode-option"><input type="radio" name="scan-mode" value="batch"><span>Batch (up to 10)</span></label>
+        </fieldset>
+        <div id="batch-field" class="batch-field" hidden>
+          <label for="batch-urls">Public webpage URLs (one per line, max 10)</label>
+          <textarea id="batch-urls" rows="6" spellcheck="false" aria-describedby="batch-hint" placeholder="https://example.com/a&#10;https://example.com/b"></textarea>
+          <p id="batch-hint" class="batch-hint">Pages are scanned sequentially, so batches may take a while. Settings below apply to every URL.</p>
+        </div>
+        <label id="url-label" for="url">Public webpage URL</label>
         <div class="url-row">
-          <div class="url-field">
+          <div class="url-field" id="single-field">
             <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg>
             <input id="url" name="url" type="url" required autocomplete="url" spellcheck="false" placeholder="https://example.com/article">
           </div>
           <button id="submit-button" type="submit">
-            <span class="button-label">Scan page</span>
+            <span class="button-label" id="submit-label">Scan page</span>
             <span class="button-loader" aria-hidden="true"></span>
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
           </button>
@@ -81,6 +91,18 @@
         <button id="new-scan" class="secondary-button" type="button">New scan</button>
       </div>
 
+      <section id="batch-summary" class="panel batch-summary" aria-labelledby="batch-title" hidden>
+        <div class="panel-heading">
+          <div><span class="panel-kicker">Batch results</span><h3 id="batch-title">Batch summary</h3></div>
+          <button id="copy-batch" class="copy-button" type="button">Copy batch JSON</button>
+        </div>
+        <p id="batch-counts" class="batch-counts"></p>
+        <ol id="batch-list" class="batch-list"></ol>
+        <p id="batch-detail-note" class="batch-counts" tabindex="-1"></p>
+        <pre id="batch-raw" class="visually-hidden" aria-hidden="true"></pre>
+      </section>
+
+      <div id="detail-area">
       <div class="summary-grid">
         <article class="metric-card verdict-card">
           <p>Verdict</p>
@@ -125,6 +147,7 @@
           <div id="actions" class="audit-section"></div>
           <div id="findings" class="audit-section"></div>
         </aside>
+      </div>
       </div>
     </section>
 

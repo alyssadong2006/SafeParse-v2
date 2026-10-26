@@ -10,10 +10,74 @@ const actionLabels = {
   FLAGGED_ML_PROMPT_INJECTION: 'Flagged content identified by the ML classifier',
 };
 
+const MAX_BATCH = 10;
+const batchSummary = document.querySelector('#batch-summary');
+const detailArea = document.querySelector('#detail-area');
+
+function currentMode() {
+  return document.querySelector('input[name="scan-mode"]:checked').value;
+}
+
 function setLoading(loading) {
   submitButton.disabled = loading;
+  document.querySelectorAll('input[name="scan-mode"]').forEach(radio => { radio.disabled = loading; });
   submitButton.classList.toggle('loading', loading);
-  submitButton.querySelector('.button-label').textContent = loading ? 'Inspecting…' : 'Scan page';
+  const batch = currentMode() === 'batch';
+  submitButton.querySelector('.button-label').textContent = loading ? 'Inspecting…' : (batch ? 'Scan batch' : 'Scan page');
+}
+
+function resetResults() {
+  results.hidden = true;
+  batchSummary.hidden = true;
+  detailArea.hidden = false;
+  document.querySelector('#batch-list').replaceChildren();
+  document.querySelector('#batch-counts').textContent = '';
+  document.querySelector('#batch-detail-note').textContent = '';
+  document.querySelector('#batch-raw').textContent = '';
+  document.querySelector('#raw-output').textContent = '';
+  document.querySelector('#formatted-text').replaceChildren();
+  errorBox.hidden = true;
+  features.hidden = false;
+}
+
+function formatDetail(detail, status) {
+  if (typeof detail === 'string' && detail) return detail;
+  if (Array.isArray(detail) && detail.length) {
+    return detail.map(entry => {
+      if (typeof entry === 'string') return entry;
+      const msg = typeof entry?.msg === 'string' ? entry.msg : 'Invalid value';
+      const loc = Array.isArray(entry?.loc)
+        ? entry.loc.filter(part => part !== 'body').map(String).join('.')
+        : '';
+      return loc ? `${loc}: ${msg}` : msg;
+    }).join('; ');
+  }
+  return `Request failed with status ${status}`;
+}
+
+function applyMode() {
+  resetResults();
+  const batch = currentMode() === 'batch';
+  document.querySelector('#batch-field').hidden = !batch;
+  document.querySelector('#single-field').hidden = batch;
+  document.querySelector('#url-label').hidden = batch;
+  document.querySelector('#url').required = !batch;
+  submitButton.querySelector('.button-label').textContent = batch ? 'Scan batch' : 'Scan page';
+}
+document.querySelectorAll('input[name="scan-mode"]').forEach(radio => radio.addEventListener('change', applyMode));
+
+function parseBatchUrls() {
+  const urls = document.querySelector('#batch-urls').value.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  if (!urls.length) throw new Error('Enter at least one URL.');
+  if (urls.length > MAX_BATCH) throw new Error(`Batch scans support at most ${MAX_BATCH} URLs; you entered ${urls.length}.`);
+  urls.forEach((value, index) => {
+    let parsed;
+    try { parsed = new URL(value); } catch { parsed = null; }
+    if (!parsed || !['http:', 'https:'].includes(parsed.protocol)) {
+      throw new Error(`Line ${index + 1} is not a valid http(s) URL.`);
+    }
+  });
+  return urls;
 }
 
 function addAuditItem(container, title, detail, snippet, finding = false) {
@@ -92,7 +156,7 @@ function renderFormattedText(text, findings) {
   });
 }
 
-function renderResults(payload) {
+function renderResults(payload, { scroll = true } = {}) {
   const audit = payload.security_audit;
   const score = Math.round(audit.threat_score * 100);
   const threat = audit.is_threat_detected;
@@ -150,28 +214,105 @@ function renderResults(payload) {
 
   features.hidden = true;
   results.hidden = false;
+  if (scroll) results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderBatch(payload) {
+  const items = Array.isArray(payload?.results) ? payload.results : [];
+  const okCount = items.filter(item => item.status === 'success').length;
+  const failCount = items.length - okCount;
+  document.querySelector('#batch-counts').textContent =
+    `${items.length} URL${items.length === 1 ? '' : 's'}: ${okCount} succeeded, ${failCount} failed.` +
+    (okCount ? ' Select a successful result to inspect it.' : ' All scans failed.');
+  document.querySelector('#batch-raw').textContent = JSON.stringify(payload, null, 2);
+  const list = document.querySelector('#batch-list');
+  list.replaceChildren();
+  detailArea.hidden = true;
+  document.querySelector('#batch-detail-note').textContent = '';
+  const buttons = [];
+  items.forEach((item, index) => {
+    const li = document.createElement('li');
+    li.className = 'batch-item';
+    const urlText = document.createElement('span');
+    urlText.className = 'batch-url';
+    urlText.textContent = String(item.url ?? '');
+    if (item.status === 'success' && item.data && item.security_audit && item.performance) {
+      const threat = item.security_audit.is_threat_detected;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'batch-select';
+      button.setAttribute('aria-pressed', 'false');
+      const badge = document.createElement('span');
+      badge.className = `batch-badge ${threat ? 'threat' : 'ok'}`;
+      badge.textContent = threat ? 'Threat detected' : 'No threat detected';
+      button.append(`${index + 1}. `, urlText, badge);
+      button.addEventListener('click', () => {
+        buttons.forEach(other => other.setAttribute('aria-pressed', String(other === button)));
+        renderResults(item, { scroll: false });
+        detailArea.hidden = false;
+        document.querySelector('#batch-detail-note').textContent = `Showing details for result ${index + 1}.`;
+        detailArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      buttons.push(button);
+      li.appendChild(button);
+    } else {
+      li.classList.add('batch-error');
+      const row = document.createElement('div');
+      row.className = 'batch-row';
+      const badge = document.createElement('span');
+      badge.className = 'batch-badge error';
+      badge.textContent = `Error${item.error?.status_code ? ' ' + item.error.status_code : ''}`;
+      row.append(`${index + 1}. `, urlText, badge);
+      const detail = document.createElement('p');
+      detail.className = 'batch-error-detail';
+      detail.textContent = item.error?.detail || 'The page could not be inspected.';
+      li.append(row, detail);
+    }
+    list.appendChild(li);
+  });
+  batchSummary.hidden = false;
+  features.hidden = true;
+  results.hidden = false;
   results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function postJson(url, body) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  let payload;
+  try { payload = await response.json(); } catch { payload = null; }
+  if (!response.ok) throw new Error(formatDetail(payload?.detail, response.status));
+  return payload;
 }
 
 form.addEventListener('submit', async event => {
   event.preventDefault();
-  errorBox.hidden = true;
-  results.hidden = true;
+  resetResults();
+  const batch = currentMode() === 'batch';
+  const timeout_seconds = Number(document.querySelector('#timeout').value);
+  const strict_mode = document.querySelector('#strict-mode').checked;
   setLoading(true);
   try {
-    const response = await fetch('/api/v1/sanitize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    if (batch) {
+      const urls = parseBatchUrls();
+      const payload = await postJson('/api/v1/sanitize/batch', {
+        items: urls.map(url => ({ url, timeout_seconds, strict_mode })),
+      });
+      if (!Array.isArray(payload?.results)) throw new Error('Unexpected batch response.');
+      renderBatch(payload);
+    } else {
+      const payload = await postJson('/api/v1/sanitize', {
         url: document.querySelector('#url').value,
-        timeout_seconds: Number(document.querySelector('#timeout').value),
-        strict_mode: document.querySelector('#strict-mode').checked,
-      }),
-    });
-    let payload;
-    try { payload = await response.json(); } catch { payload = null; }
-    if (!response.ok) throw new Error(payload?.detail || `Request failed with status ${response.status}`);
-    renderResults(payload);
+        timeout_seconds,
+        strict_mode,
+      });
+      batchSummary.hidden = true;
+      detailArea.hidden = false;
+      renderResults(payload);
+    }
   } catch (error) {
     errorBox.textContent = error.message || 'The page could not be inspected.';
     errorBox.hidden = false;
@@ -182,9 +323,8 @@ form.addEventListener('submit', async event => {
 });
 
 document.querySelector('#new-scan').addEventListener('click', () => {
-  results.hidden = true;
-  features.hidden = false;
-  document.querySelector('#url').focus();
+  resetResults();
+  (currentMode() === 'batch' ? document.querySelector('#batch-urls') : document.querySelector('#url')).focus();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
@@ -201,4 +341,8 @@ document.querySelector('#copy-text').addEventListener('click', event => {
 
 document.querySelector('#copy-raw').addEventListener('click', event => {
   copyFrom('#raw-output', event, 'Copy JSON');
+});
+
+document.querySelector('#copy-batch').addEventListener('click', event => {
+  copyFrom('#batch-raw', event, 'Copy batch JSON');
 });

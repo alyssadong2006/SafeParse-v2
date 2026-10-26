@@ -1,5 +1,5 @@
 """Public API request and response schemas."""
-from typing import List, Literal, Optional
+from typing import Annotated, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -14,6 +14,10 @@ class SanitizeRequest(BaseModel):
         le=settings.max_timeout_seconds,
     )
     strict_mode: bool = True
+
+
+class BatchSanitizeRequest(BaseModel):
+    items: List[SanitizeRequest] = Field(min_length=1, max_length=10)
 
 
 class FlaggedElement(BaseModel):
@@ -46,3 +50,23 @@ class SanitizeResponse(BaseModel):
     data: SanitizedData
     security_audit: SecurityAudit
     performance: Performance
+
+
+class SanitizeError(BaseModel):
+    status_code: int
+    detail: str
+
+
+class SanitizeFailure(BaseModel):
+    status: Literal["error"] = "error"
+    url: str
+    error: SanitizeError
+
+
+BatchSanitizeResult = Annotated[
+    Union[SanitizeResponse, SanitizeFailure], Field(discriminator="status")
+]
+
+
+class BatchSanitizeResponse(BaseModel):
+    results: List[BatchSanitizeResult]

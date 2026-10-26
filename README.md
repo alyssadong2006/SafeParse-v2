@@ -84,7 +84,7 @@ safeparse/
 │   ├── api/
 │   │   ├── __init__.py
 │   │   └── v1/
-│   │       ├── endpoints.py      # POST /api/v1/sanitize endpoint
+│   │       ├── endpoints.py      # Single-page and batch sanitization endpoints
 │   │       └── models.py         # Pydantic schemas for requests/responses
 │   ├── engine/
 │   │   ├── __init__.py
@@ -221,7 +221,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ```
 
-Open `http://localhost:8000` for the local scanning dashboard. Paste a URL to see readable formatted content, the security audit, and an expandable raw JSON response. Interactive OpenAPI documentation is available at `http://localhost:8000/docs`, and the health check is available at `GET /health`.
+Open `http://localhost:8000` for the local scanning dashboard. Paste a URL to see readable formatted content, the security audit, and an expandable raw JSON response. For multiple pages, select batch mode and enter one URL per line (up to 10). The timeout and strict-detection settings apply to every page. Inspect individual successes or errors without losing the rest of the batch, and copy the full batch JSON response. Interactive OpenAPI documentation is available at `http://localhost:8000/docs`, and the health check is available at `GET /health`.
 
 This command works on macOS, Linux, and Windows, including Uvicorn's reload mode. SafeParse runs Playwright on a dedicated subprocess-capable event loop: the Proactor implementation on Windows and the platform-default Unix implementation on macOS/Linux. This avoids the `NotImplementedError` that occurs when Playwright is launched from a Windows selector event loop.
 
@@ -312,6 +312,39 @@ docker-compose up --build
 ```
 
 `text_start` and `text_end` are zero-based, end-exclusive offsets into `data.clean_text` when the suspicious text remains visible in the sanitized output. Removed hidden content and findings that cannot be mapped reliably use `null`. The dashboard highlights every finding with a valid range without rendering untrusted content as HTML.
+
+---
+
+## Batch Sanitization
+
+* **URL:** `/api/v1/sanitize/batch`
+* **Method:** `POST`
+* **Content-Type:** `application/json`
+
+Submit `items`, an array of **1–10** single-page requests. Each item accepts the same `url`, `timeout_seconds`, and `strict_mode` fields and defaults as `/sanitize`:
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/sanitize/batch" \
+  -H "Content-Type: application/json" \
+  -d '{"items":[{"url":"https://example.com/article","timeout_seconds":15,"strict_mode":true},{"url":"https://example.org/report","strict_mode":false}]}'
+```
+
+The response is `200 OK` with a `results` array in **input order**, including duplicates. Each success is the complete single-page response shown above (`status`, `url`, `data`, `security_audit`, and `performance`). Each failure has this shape:
+
+```json
+{
+  "status": "error",
+  "url": "https://example.org/report",
+  "error": {
+    "status_code": 504,
+    "detail": "Target page timed out"
+  }
+}
+```
+
+Failures do not stop later pages. The response remains `200 OK` even if all pages fail; callers must check each result's `status`. Per-item error codes match the single endpoint: `400` for unsafe URLs, `504` for page timeouts, `502` for rendering/fetch failures, and `503` for classifier failures. Unexpected item failures return a generic `500` error without exposing internal details.
+
+An invalid request (including a malformed URL, invalid timeout, empty list, or more than 10 items) returns `422` for the **whole batch before any page is processed**. Network-safety checks still run for every page and redirect. Pages are processed sequentially to bound browser resource use; this is a synchronous request, not a background job. Allow enough client/proxy timeout for the complete batch, including rendering and classifier work (up to 10 per-page timeouts plus processing overhead).
 
 ---
 

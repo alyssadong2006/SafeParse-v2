@@ -7,7 +7,14 @@ from playwright.async_api import (
     TimeoutError as PlaywrightTimeoutError,
 )
 
-from app.api.v1.models import SanitizeRequest, SanitizeResponse
+from app.api.v1.models import (
+    BatchSanitizeRequest,
+    BatchSanitizeResponse,
+    SanitizeError,
+    SanitizeFailure,
+    SanitizeRequest,
+    SanitizeResponse,
+)
 from app.engine.renderer import UnsafeURLError, render
 from app.security.guardrail_model import GuardrailModelError, predict_prompt_injection
 from app.services.sanitizer import sanitize_request
@@ -56,3 +63,27 @@ async def sanitize(request: SanitizeRequest):
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.post("/sanitize/batch", response_model=BatchSanitizeResponse)
+async def sanitize_batch(request: BatchSanitizeRequest):
+    """Sanitize up to ten pages, preserving input order and individual failures."""
+    results = []
+    # Process sequentially to avoid launching ten Chromium processes at once.
+    # Each page uses the same URL safeguards, timeout, classifier, and audit path
+    # as the single-page endpoint. Cancellation is intentionally not caught.
+    for item in request.items:
+        try:
+            results.append(await sanitize(item))
+        except HTTPException as exc:
+            results.append(SanitizeFailure(
+                url=str(item.url),
+                error=SanitizeError(status_code=exc.status_code, detail=exc.detail),
+            ))
+        except Exception:
+            logger.exception("Unexpected batch item sanitization failure")
+            results.append(SanitizeFailure(
+                url=str(item.url),
+                error=SanitizeError(status_code=500, detail="Page could not be sanitized"),
+            ))
+    return BatchSanitizeResponse(results=results)
