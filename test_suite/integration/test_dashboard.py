@@ -1,4 +1,5 @@
 """Exercise dashboard JavaScript in Chromium with local assets and mocked API."""
+import asyncio
 import json
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -56,6 +57,13 @@ def failure(url):
             "error": {"status_code": 504, "detail": "Target page timed out <script>"}}
 
 
+async def fill_urls(page, urls):
+    for index, url in enumerate(urls):
+        if index:
+            await page.locator("#add-url").click()
+        await page.locator("#url-rows input").nth(index).fill(url)
+
+
 @pytest.mark.asyncio
 async def test_batch_selection_errors_copy_and_single_mode(dashboard):
     page = dashboard
@@ -70,8 +78,8 @@ async def test_batch_selection_errors_copy_and_single_mode(dashboard):
         await route.fulfill(json=response)
 
     await page.route("**/api/v1/**", api)
-    await page.locator('input[value="batch"]').check()
-    await page.locator("#batch-urls").fill("https://example.com/a\nhttps://example.com/b\nhttps://example.com/a")
+    await fill_urls(page, ["https://example.com/a", "https://example.com/b", "https://example.com/a"])
+    await expect(page.locator(".button-label")).to_have_text("Scan 3 pages")
     await page.locator("#submit-button").click()
     await expect(page.locator("#batch-counts")).to_contain_text("2 succeeded, 1 failed")
     assert requests == [("/api/v1/sanitize/batch", {"items": [
@@ -90,7 +98,8 @@ async def test_batch_selection_errors_copy_and_single_mode(dashboard):
     assert json.loads(await page.evaluate("window.copiedText")) == payload
     await page.locator("#new-scan").click()
     await expect(page.locator("#results")).to_be_hidden()
-    await page.locator('input[value="single"]').check()
+    await page.locator(".remove-url").last.click()
+    await page.locator(".remove-url").last.click()
     await page.locator("#url").fill("https://example.com/single")
     await page.locator("#submit-button").click()
     await expect(page.locator("#formatted-text")).to_have_text("Article text")
@@ -101,10 +110,9 @@ async def test_batch_selection_errors_copy_and_single_mode(dashboard):
 @pytest.mark.asyncio
 async def test_all_failures_remain_visible_and_copyable(dashboard):
     page = dashboard
-    payload = {"results": [failure("https://example.com/")]}
+    payload = {"results": [failure("https://example.com/"), failure("https://example.org/")]}
     await page.route("**/api/v1/sanitize/batch", lambda route: route.fulfill(json=payload))
-    await page.locator('input[value="batch"]').check()
-    await page.locator("#batch-urls").fill("https://example.com/")
+    await fill_urls(page, ["https://example.com/", "https://example.org/"])
     await page.locator("#submit-button").click()
     await expect(page.locator("#batch-counts")).to_contain_text("All scans failed")
     await expect(page.locator("#detail-area")).to_be_hidden()
@@ -124,15 +132,69 @@ async def test_batch_validation_and_structured_api_errors(dashboard):
         ]})
 
     await page.route("**/api/v1/sanitize/batch", api)
-    await page.locator('input[value="batch"]').check()
-    for value, message in [("", "Enter at least one URL"),
-                           ("https://example.com/\n" * 11, "at most 10"),
-                           ("file:///etc/passwd", "not a valid http(s) URL")]:
-        await page.locator("#batch-urls").fill(value)
+    for value, message in [("", "Enter a URL for row 1"),
+                           ("file:///etc/passwd", "URL 1 must be a valid HTTP(S) URL")]:
+        await page.locator("#url").fill(value)
         await page.locator("#submit-button").click()
         await expect(page.locator("#error")).to_contain_text(message)
     assert requests == []
-    await page.locator("#batch-urls").fill("https://example.com/")
+    await page.locator("#url").fill("https://example.com/")
+    await page.locator("#add-url").click()
+    await page.locator("#submit-button").click()
+    await expect(page.locator("#error")).to_contain_text("Enter a URL for row 2")
+    assert requests == []
+    await page.locator("#url-rows input").last.fill("https://example.org/")
     await page.locator("#submit-button").click()
     await expect(page.locator("#error")).to_have_text("items.0.url: Invalid URL")
     await expect(page.locator("#submit-button")).to_be_enabled()
+
+
+@pytest.mark.asyncio
+async def test_url_row_limit_removal_labels_and_mobile_layout(dashboard):
+    page = dashboard
+    await page.set_viewport_size({"width": 390, "height": 844})
+    await fill_urls(page, [f"https://example.com/{index}" for index in range(10)])
+    await expect(page.locator("#url-count")).to_have_text("10 / 10 URLs")
+    await expect(page.locator("#add-url")).to_be_disabled()
+    assert await page.locator("#url-rows input").count() == 10
+    await page.locator(".remove-url").nth(4).click()
+    await expect(page.locator("#add-url")).to_be_enabled()
+    assert await page.locator("#url-rows input").nth(4).input_value() == "https://example.com/5"
+    await expect(page.locator("#url-rows input").nth(4)).to_be_focused()
+    await page.locator("#add-url").click()
+    await expect(page.locator("#url-rows input").last).to_have_value("")
+    labels = await page.locator(".url-entry label").all_text_contents()
+    assert labels == [f"URL {index}" for index in range(1, 11)]
+    assert await page.evaluate("""() => {
+      const inputs = [...document.querySelectorAll('#url-rows input')];
+      return new Set(inputs.map(input => input.id)).size === inputs.length &&
+        inputs.every(input => document.querySelector(`label[for="${input.id}"]`));
+    }""")
+    assert await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+    for _ in range(9):
+        await page.locator(".remove-url").first.click()
+    await expect(page.locator(".remove-url")).to_be_disabled()
+    await expect(page.locator("#url-count")).to_have_text("1 / 10 URLs")
+    await expect(page.locator(".button-label")).to_have_text("Scan page")
+
+
+@pytest.mark.asyncio
+async def test_url_rows_locked_during_scan_and_restored_after_failure(dashboard):
+    page = dashboard
+    release = asyncio.Event()
+
+    async def api(route):
+        await release.wait()
+        await route.fulfill(status=503, json={"detail": "Model unavailable"})
+
+    await page.route("**/api/v1/sanitize/batch", api)
+    await fill_urls(page, ["https://example.com/", "https://example.org/"])
+    await page.locator("#submit-button").click()
+    await expect(page.locator("#add-url")).to_be_disabled()
+    await expect(page.locator(".remove-url").first).to_be_disabled()
+    await expect(page.locator("#url-rows input").first).to_be_disabled()
+    release.set()
+    await expect(page.locator("#error")).to_have_text("Model unavailable")
+    await expect(page.locator("#add-url")).to_be_enabled()
+    await expect(page.locator(".remove-url").first).to_be_enabled()
+    await expect(page.locator("#url-rows input").first).to_have_value("https://example.com/")

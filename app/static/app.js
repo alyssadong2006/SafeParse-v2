@@ -14,16 +14,60 @@ const MAX_BATCH = 10;
 const batchSummary = document.querySelector('#batch-summary');
 const detailArea = document.querySelector('#detail-area');
 
-function currentMode() {
-  return document.querySelector('input[name="scan-mode"]:checked').value;
+const urlRows = document.querySelector('#url-rows');
+const addUrlButton = document.querySelector('#add-url');
+let nextUrlId = 1;
+let isLoading = false;
+
+function updateUrlRows() {
+  const rows = [...urlRows.querySelectorAll('.url-entry')];
+  rows.forEach((row, index) => {
+    row.querySelector('label').textContent = `URL ${index + 1}`;
+    const removeButton = row.querySelector('.remove-url');
+    removeButton.setAttribute('aria-label', `Remove URL ${index + 1}`);
+    removeButton.disabled = rows.length === 1;
+  });
+  addUrlButton.disabled = rows.length >= MAX_BATCH;
+  document.querySelector('#url-count').textContent = `${rows.length} / ${MAX_BATCH} URLs`;
+  submitButton.querySelector('.button-label').textContent = rows.length > 1 ? `Scan ${rows.length} pages` : 'Scan page';
 }
 
+addUrlButton.addEventListener('click', () => {
+  if (isLoading || urlRows.children.length >= MAX_BATCH) return;
+  const row = urlRows.firstElementChild.cloneNode(true);
+  const input = row.querySelector('input');
+  input.id = `url-${nextUrlId++}`;
+  input.name = input.id;
+  input.value = '';
+  input.removeAttribute('aria-invalid');
+  row.querySelector('label').htmlFor = input.id;
+  urlRows.appendChild(row);
+  resetResults();
+  updateUrlRows();
+  input.focus();
+});
+
+urlRows.addEventListener('click', event => {
+  const button = event.target.closest('.remove-url');
+  if (!button || isLoading || urlRows.children.length === 1) return;
+  const row = button.closest('.url-entry');
+  const focusRow = row.nextElementSibling || row.previousElementSibling;
+  row.remove();
+  resetResults();
+  updateUrlRows();
+  focusRow.querySelector('input').focus();
+});
+
 function setLoading(loading) {
+  isLoading = loading;
   submitButton.disabled = loading;
-  document.querySelectorAll('input[name="scan-mode"]').forEach(radio => { radio.disabled = loading; });
+  document.querySelector('#url-inputs').disabled = loading;
   submitButton.classList.toggle('loading', loading);
-  const batch = currentMode() === 'batch';
-  submitButton.querySelector('.button-label').textContent = loading ? 'Inspecting…' : (batch ? 'Scan batch' : 'Scan page');
+  if (loading) {
+    submitButton.querySelector('.button-label').textContent = 'Inspecting…';
+  } else {
+    updateUrlRows();
+  }
 }
 
 function resetResults() {
@@ -55,29 +99,20 @@ function formatDetail(detail, status) {
   return `Request failed with status ${status}`;
 }
 
-function applyMode() {
-  resetResults();
-  const batch = currentMode() === 'batch';
-  document.querySelector('#batch-field').hidden = !batch;
-  document.querySelector('#single-field').hidden = batch;
-  document.querySelector('#url-label').hidden = batch;
-  document.querySelector('#url').required = !batch;
-  submitButton.querySelector('.button-label').textContent = batch ? 'Scan batch' : 'Scan page';
-}
-document.querySelectorAll('input[name="scan-mode"]').forEach(radio => radio.addEventListener('change', applyMode));
-
-function parseBatchUrls() {
-  const urls = document.querySelector('#batch-urls').value.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-  if (!urls.length) throw new Error('Enter at least one URL.');
-  if (urls.length > MAX_BATCH) throw new Error(`Batch scans support at most ${MAX_BATCH} URLs; you entered ${urls.length}.`);
-  urls.forEach((value, index) => {
+function parseUrls() {
+  const inputs = [...urlRows.querySelectorAll('input')];
+  inputs.forEach(input => input.removeAttribute('aria-invalid'));
+  return inputs.map((input, index) => {
+    const value = input.value.trim();
     let parsed;
     try { parsed = new URL(value); } catch { parsed = null; }
-    if (!parsed || !['http:', 'https:'].includes(parsed.protocol)) {
-      throw new Error(`Line ${index + 1} is not a valid http(s) URL.`);
+    if (!parsed || !['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname) {
+      input.setAttribute('aria-invalid', 'true');
+      input.focus();
+      throw new Error(value ? `URL ${index + 1} must be a valid HTTP(S) URL.` : `Enter a URL for row ${index + 1}, or remove that row.`);
     }
+    return value;
   });
-  return urls;
 }
 
 function addAuditItem(container, title, detail, snippet, finding = false) {
@@ -290,14 +325,14 @@ async function postJson(url, body) {
 
 form.addEventListener('submit', async event => {
   event.preventDefault();
+  if (isLoading) return;
   resetResults();
-  const batch = currentMode() === 'batch';
   const timeout_seconds = Number(document.querySelector('#timeout').value);
   const strict_mode = document.querySelector('#strict-mode').checked;
-  setLoading(true);
   try {
-    if (batch) {
-      const urls = parseBatchUrls();
+    const urls = parseUrls();
+    setLoading(true);
+    if (urls.length > 1) {
       const payload = await postJson('/api/v1/sanitize/batch', {
         items: urls.map(url => ({ url, timeout_seconds, strict_mode })),
       });
@@ -305,7 +340,7 @@ form.addEventListener('submit', async event => {
       renderBatch(payload);
     } else {
       const payload = await postJson('/api/v1/sanitize', {
-        url: document.querySelector('#url').value,
+        url: urls[0],
         timeout_seconds,
         strict_mode,
       });
@@ -324,7 +359,7 @@ form.addEventListener('submit', async event => {
 
 document.querySelector('#new-scan').addEventListener('click', () => {
   resetResults();
-  (currentMode() === 'batch' ? document.querySelector('#batch-urls') : document.querySelector('#url')).focus();
+  urlRows.querySelector('input').focus();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 

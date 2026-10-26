@@ -221,7 +221,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ```
 
-Open `http://localhost:8000` for the local scanning dashboard. Paste a URL to see readable formatted content, the security audit, and an expandable raw JSON response. For multiple pages, select batch mode and enter one URL per line (up to 10). The timeout and strict-detection settings apply to every page. Inspect individual successes or errors without losing the rest of the batch, and copy the full batch JSON response. Interactive OpenAPI documentation is available at `http://localhost:8000/docs`, and the health check is available at `GET /health`.
+Open `http://localhost:8000` for the local scanning dashboard. Paste a URL to see readable formatted content, the security audit, and an expandable raw JSON response. For multiple pages, click **Add another URL** to add input rows (up to 10), or remove rows you no longer need. A single row uses the single-page API; multiple rows automatically use the batch API. The timeout and strict-detection settings apply to every page. Inspect individual successes or errors without losing the rest of the batch, and copy the full batch JSON response. Interactive OpenAPI documentation is available at `http://localhost:8000/docs`, and the health check is available at `GET /health`.
 
 This command works on macOS, Linux, and Windows, including Uvicorn's reload mode. SafeParse runs Playwright on a dedicated subprocess-capable event loop: the Proactor implementation on Windows and the platform-default Unix implementation on macOS/Linux. This avoids the `NotImplementedError` that occurs when Playwright is launched from a Windows selector event loop.
 
