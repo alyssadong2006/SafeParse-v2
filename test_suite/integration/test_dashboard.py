@@ -25,7 +25,7 @@ async def dashboard():
                          "/static/styles.css": ("styles.css", "text/css")}
                 if path in files:
                     name, content_type = files[path]
-                    await route.fulfill(body=(STATIC / name).read_text(), content_type=content_type)
+                    await route.fulfill(body=(STATIC / name).read_text(encoding="utf-8"), content_type=content_type)
                     return
             await route.abort()
 
